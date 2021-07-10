@@ -63,3 +63,6 @@ Run Dropbox with a custom group id (matching the group of the mounted files)
 
 `/dbox/Dropbox`
 Dropbox files
+
+`/dbox/.dropbox`
+Dropbox account configuration
