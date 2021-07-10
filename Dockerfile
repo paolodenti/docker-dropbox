@@ -1,51 +1,58 @@
-FROM debian:jessie
-MAINTAINER Jan Broer <janeczku@yahoo.de>
-ENV DEBIAN_FRONTEND noninteractive
+FROM debian:buster
 
-# Following 'How do I add or remove Dropbox from my Linux repository?' - https://www.dropbox.com/en/help/246
-RUN echo 'deb http://linux.dropbox.com/debian jessie main' > /etc/apt/sources.list.d/dropbox.list \
-	&& apt-key adv --keyserver pgp.mit.edu --recv-keys 1C61A2656FB57B7E4DE0F4C1FC918B335044912E \
-	&& apt-get -qqy update \
-	# Note 'ca-certificates' dependency is required for 'dropbox start -i' to succeed
-	&& apt-get -qqy install ca-certificates curl python-gpgme dropbox \
-	# Perform image clean up.
-	&& apt-get -qqy autoclean \
-	&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-	# Create service account and set permissions.
-	&& groupadd dropbox \
+ARG DEBIAN_FRONTEND noninteractive
+
+RUN apt-get update
+RUN apt-get install -y \
+	gir1.2-pango-1.0 \
+	gir1.2-gtk-3.0 \
+	gir1.2-gdkpixbuf-2.0 \
+	lsb-release \
+	libpango1.0-0 \
+	libgtk-3-0 \
+	libatk1.0-0 \
+	python3 \
+	python3-gi \
+	python3-qt-binding \
+	procps \
+	wget \
+	ca-certificates
+
+RUN apt-get clean -y
+RUN rm -rf /var/lib/apt/lists/* \
+    /var/cache/* \
+    /usr/share/doc/* \
+    /usr/share/locale/*
+
+# Create service account and set permissions.
+RUN groupadd dropbox \
 	&& useradd -m -d /dbox -c "Dropbox Daemon Account" -s /usr/sbin/nologin -g dropbox dropbox
 
-# Dropbox is weird: it insists on downloading its binaries itself via 'dropbox
-# start -i'. So we switch to 'dropbox' user temporarily and let it do its thing.
 USER dropbox
-RUN mkdir -p /dbox/.dropbox /dbox/.dropbox-dist /dbox/Dropbox /dbox/base \
-	&& echo y | dropbox start -i
+
+RUN cd /dbox && wget -O - "https://www.dropbox.com/download?plat=lnx.x86_64" | tar xzf -
+RUN mkdir -p /dbox/.dropbox /dbox/.dropbox-dist /dbox/Dropbox /dbox/base
 
 # Switch back to root, since the run script needs root privs to chmod to the user's preferrred UID
 USER root
 
-# Dropbox has the nasty tendency to update itself without asking. In the processs it fills the
-# file system over time with rather large files written to /dbox and /tmp. The auto-update routine
-# also tries to restart the dockerd process (PID 1) which causes the container to be terminated.
-RUN mkdir -p /opt/dropbox \
-	# Prevent dropbox to overwrite its binary
-	&& mv /dbox/.dropbox-dist/dropbox-lnx* /opt/dropbox/ \
-	&& mv /dbox/.dropbox-dist/dropboxd /opt/dropbox/ \
-	&& mv /dbox/.dropbox-dist/VERSION /opt/dropbox/ \
-	&& rm -rf /dbox/.dropbox-dist \
-	&& install -dm0 /dbox/.dropbox-dist \
-	# Prevent dropbox to write update files
-	&& chmod u-w /dbox \
-	&& chmod o-w /tmp \
-	&& chmod g-w /tmp \
-	# Prepare for command line wrapper
-	&& mv /usr/bin/dropbox /usr/bin/dropbox-cli
+# Prevent dropbox to overwrite its binary
+RUN mkdir -p /opt/dropbox
+RUN mv /dbox/.dropbox-dist/dropbox-lnx* /opt/dropbox/
+RUN mv /dbox/.dropbox-dist/dropboxd /opt/dropbox/
+RUN mv /dbox/.dropbox-dist/VERSION /opt/dropbox/
+RUN rm -rf /dbox/.dropbox-dist
+RUN install -dm0 /dbox/.dropbox-dist
+
+# Prevent dropbox to write update files
+RUN chmod u-w /dbox
+RUN chmod o-w /tmp
+RUN chmod g-w /tmp
 
 # Install init script and dropbox command line wrapper
-COPY run /root/
-COPY dropbox /usr/bin/dropbox
+COPY run /root/.
 
 WORKDIR /dbox/Dropbox
-EXPOSE 17500
 VOLUME ["/dbox/.dropbox", "/dbox/Dropbox"]
+
 ENTRYPOINT ["/root/run"]
