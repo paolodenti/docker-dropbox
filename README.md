@@ -8,7 +8,7 @@ Forked by [janeczku/dropbox](https://github.com/janeczku/docker-dropbox).
 * no update available, DBOX_SKIP_UPDATE removed
 * LAN broadcasting port not exposed
 
-This repository provides the [paolodenti/dropbox](https://registry.hub.docker.com/u/paolodenti/dropbox/) image.
+This repository provides the [paolodenti/dropbox](https://hub.docker.com/repository/docker/paolodenti/dropbox) image.
 
 ## Usage examples
 
