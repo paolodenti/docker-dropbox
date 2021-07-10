@@ -1,9 +1,7 @@
 FROM debian:buster
 
-ARG DEBIAN_FRONTEND noninteractive
-
-RUN apt-get update
-RUN apt-get install -y \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	gir1.2-pango-1.0 \
 	gir1.2-gtk-3.0 \
 	gir1.2-gdkpixbuf-2.0 \
@@ -18,7 +16,7 @@ RUN apt-get install -y \
 	wget \
 	ca-certificates
 
-RUN apt-get clean -y
+RUN DEBIAN_FRONTEND=noninteractive apt-get clean -y
 RUN rm -rf /var/lib/apt/lists/* \
     /var/cache/* \
     /usr/share/doc/* \
